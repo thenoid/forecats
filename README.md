@@ -38,26 +38,50 @@ Works in better weather
 - A google AI studio [API key](https://aistudio.google.com/api-keys). Note that, as of writing, you need to input billing details to get the free credits.
 
 ### Setup
+
+#### Option A: Install via HACS (recommended)
+
+1. Install [HACS](https://hacs.xyz/) if you haven't already.
+2. In HACS, click **Custom repositories** and add `https://github.com/jwardbond/forecats` with category **Integration**.
+3. Search for "Daily Forecats" in HACS and install it.
+4. Restart Home Assistant, then continue from step 2 below.
+
+#### Option B: Manual install
+
 *Do the following in your HA server, using the Terminal & SSH addon, or `docker exec` if you are running a container on a host system*
 
 1. **Create the necessary directory structure** in your Home Assistant server:
 
   ```bash
-  mkdir /config/custom_components && mkdir -p /config/forecats_data/input_images
+  mkdir -p /config/custom_components && mkdir -p /config/forecats_data/input_images
   ```
 
-2. **Select and upload cat images**
-  - Choose good pictures of your pets.
-  - Rename the files so the pets' names are in the filenames.
-  - Upload them to `/config/forecats_data/input_images`.
-
-3. **Download the repo**
+2. **Download and copy the integration files**
 
   ```bash
-  cd /config/custom_components && git clone https://github.com/jwardbond/forecats.git
+  cd /tmp && git clone https://github.com/jwardbond/forecats.git && cp -r forecats/custom_components/forecats /config/custom_components/
   ```
 
-4. **Enable the custom integration** by adding `forecats:` to your configuration file:
+---
+
+2. **Select and upload pet images** using one of the following workflows:
+
+  **Option 1 — Media Browser (no SSH required, recommended for new users)**
+  - In HA, go to **Media > Local Media** and create a folder called `forecats`.
+  - Upload your pet photos directly from the browser.
+  - In the blueprint, set **Input image directory** to `/config/media/forecats` and leave **Input image paths** blank.
+
+  **Option 2 — Legacy directory (existing users)**
+  - If you already have images at `/config/forecats_data/input_images/`, no change needed.
+  - Set **Input image directory** to `/config/forecats_data/input_images/`.
+
+  **Option 3 — Explicit paths**
+  - Provide a list of exact file paths via **Input image paths** (useful when you want fine-grained control over which images are used).
+  - `input_image_dir` and `input_image_paths` can be used together; images from both sources are merged.
+
+  In all cases: choose clear photos of your pets and rename the files so the pets' names are in the filenames.
+
+3. **Enable the custom integration** by adding `forecats:` to your configuration file:
 
   ```yaml
   # configuration.yaml
@@ -71,8 +95,16 @@ Works in better weather
   forecats:
   ```
 
-5. **Set up the automation** using the [automation template](https://github.com/jwardbond/forecats/blob/ha_integration/config_examples/automation_fragment.yaml) (add to `config/automations.yaml`).
-  - Make sure to fill out (or remove) any `<>` in the template.
+5. **Set up the automation** using one of the following options:
+
+  **Option A: Blueprint (recommended)**
+  - Go to **Settings > Automations & Scenes > Blueprints** and click **Import Blueprint**.
+  - Paste the URL: `https://github.com/jwardbond/forecats/blob/master/blueprints/automation/forecats/forecats.yaml`
+  - Create an automation from the blueprint and fill in your details.
+
+  **Option B: Manual**
+  - Copy the [automation template](config_examples/automation_fragment.yaml) into `config/automations.yaml`.
+  - Fill out or remove any `<>` placeholders.
 
 6. **Restart your server**
 
@@ -111,9 +143,9 @@ You will need a screen controllable with ESPHOME. I used seeed studio's [e10002 
 
 
 ## TODO
-- [ ] Enrol in HACS for easier install
+- [x] Enrol in HACS for easier install
 - [ ] Option to save images to dir
-- [ ] Make automation into blueprint for easier install
+- [x] Make automation into blueprint for easier install
 - [ ] Separate e-ink instructions
 - [ ] See if I can make it more configurable from GUI
 - [ ] Support for multiple cities
