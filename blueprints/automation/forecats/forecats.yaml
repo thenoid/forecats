@@ -4,9 +4,18 @@ blueprint:
     Generate a daily AI weather-themed illustration of your pets using the
     Forecats integration. Fetches today's forecast from a weather entity and
     calls the `forecats.generate_pet_picture` service on a configurable schedule.
+
+    **Setup required:** Add the Forecats integration via Settings → Integrations
+    first. Your API key, location, image directory, and display settings are
+    configured there and used automatically. The fields below only need to be
+    filled in if you want to override the integration defaults for this
+    specific automation.
   domain: automation
   source_url: https://github.com/jwardbond/forecats/blob/master/blueprints/automation/forecats/forecats.yaml
   input:
+    # -------------------------------------------------------------------------
+    # Required
+    # -------------------------------------------------------------------------
     trigger_time:
       name: Generation time
       description: >
@@ -39,18 +48,6 @@ blueprint:
         entity:
           domain: weather
 
-    gemini_api_key:
-      name: Gemini API key
-      description: Your Google AI Studio API key.
-      selector:
-        text: {}
-
-    location:
-      name: Location
-      description: Your location for weather context (e.g. "Toronto, Ontario, Canada").
-      selector:
-        text: {}
-
     pets:
       name: Pets
       description: >
@@ -66,39 +63,9 @@ blueprint:
       selector:
         object: {}
 
-    input_image_dir:
-      name: Input image directory
-      description: >
-        Path to a folder of pet reference images. All image files in the folder
-        will be used.
-
-        New (no SSH): create a "forecats" folder in the HA Media Browser (Local
-        Media) and set this to /config/media/forecats
-
-        Legacy: set this to /config/forecats_data/input_images/ if you already
-        have images there.
-
-        Leave blank if using explicit paths below instead.
-      default: ""
-      selector:
-        text: {}
-
-    input_image_paths:
-      name: Input image paths
-      description: >
-        Explicit list of file paths to reference images of your pets (up to 14
-        total). Use this or Input image directory (or both). Example:
-
-          - /config/forecats_data/input_images/milo.jpg
-          - /config/forecats_data/input_images/brutus.jpg
-      default: []
-      selector:
-        object: {}
-
     art_styles:
       name: Art styles
-      description: >
-        List of art styles to randomly choose from each day.
+      description: List of art styles to randomly choose from each day.
       default:
         - comic book
         - anime
@@ -109,58 +76,77 @@ blueprint:
       selector:
         object: {}
 
-    image_gen_aspect_ratio:
-      name: Image aspect ratio
-      description: Aspect ratio for the generated image.
-      default: "16:9"
+    # -------------------------------------------------------------------------
+    # Overrides (leave blank to use the value from the Forecats config entry)
+    # -------------------------------------------------------------------------
+    override_gemini_api_key:
+      name: "[Override] Gemini API key"
+      description: Leave blank to use the key from the Forecats config entry.
+      default: ""
+      selector:
+        text:
+          type: password
+
+    override_location:
+      name: "[Override] Location"
+      description: Leave blank to use the location from the Forecats config entry.
+      default: ""
+      selector:
+        text: {}
+
+    override_input_image_dir:
+      name: "[Override] Input image directory"
+      description: Leave blank to use the directory from the Forecats config entry.
+      default: ""
+      selector:
+        text: {}
+
+    override_image_gen_aspect_ratio:
+      name: "[Override] Image aspect ratio"
+      description: Leave blank to use the value from the Forecats config entry.
+      default: ""
       selector:
         select:
           options:
+            - label: "(use config entry default)"
+              value: ""
             - "1:1"
             - "3:4"
             - "4:3"
             - "9:16"
             - "16:9"
 
-    image_gen_resolution:
-      name: Image resolution
-      description: Resolution of the generated image.
-      default: "1K"
-      selector:
-        select:
-          options:
-            - "1K"
-            - "2K"
-            - "4K"
-
-    final_image_size:
-      name: Final image size
-      description: >
-        Output dimensions after cropping/resizing (e.g. "800x480"). Must be
-        less than or equal to the image resolution.
-      default: "800x480"
-      selector:
-        text: {}
-
-    archive_dir:
-      name: Archive directory
-      description: >
-        Directory to save dated image archives. Defaults to /media/forecats.
-      default: "/media/forecats"
-      selector:
-        text: {}
-
-    display_profile:
-      name: Display profile
-      description: >
-        Color profile to optimize the image for your display. Leave blank to
-        keep the original image colors.
+    override_image_gen_resolution:
+      name: "[Override] Image resolution"
+      description: Leave blank to use the value from the Forecats config entry.
       default: ""
       selector:
         select:
           options:
-            - label: "None (original colors)"
+            - label: "(use config entry default)"
               value: ""
+            - "1K"
+            - "2K"
+            - "4K"
+
+    override_final_image_size:
+      name: "[Override] Final image size"
+      description: Leave blank to use the value from the Forecats config entry (e.g. "800x480").
+      default: ""
+      selector:
+        text: {}
+
+    override_display_profile:
+      name: "[Override] Display profile"
+      description: Leave blank to use the value from the Forecats config entry.
+      default: ""
+      selector:
+        select:
+          options:
+            - label: "(use config entry default)"
+              value: ""
+            - label: "None (original colors)"
+              value: "none"
             - label: "Spectra 6 (e-ink)"
               value: "spectra6"
 
@@ -171,10 +157,15 @@ trigger:
 
 variables:
   weather_entity_id: !input weather_entity
-  display_profile_input: !input display_profile
-  input_image_dir_input: !input input_image_dir
   trigger_time_str: !input trigger_time
   check_interval_hours_var: !input check_interval_hours
+  override_gemini_api_key: !input override_gemini_api_key
+  override_location: !input override_location
+  override_input_image_dir: !input override_input_image_dir
+  override_image_gen_aspect_ratio: !input override_image_gen_aspect_ratio
+  override_image_gen_resolution: !input override_image_gen_resolution
+  override_final_image_size: !input override_final_image_size
+  override_display_profile: !input override_display_profile
 
 # Only proceed when the current hour is a scheduled generation slot.
 # Uses the same modulo logic as the ESPHome device so they stay in sync.
@@ -196,18 +187,19 @@ action:
     response_variable: todays_forecast
   - action: forecats.generate_pet_picture
     data:
-      gemini_api_key: !input gemini_api_key
-      location: !input location
+      # Dynamic — always from the weather entity
       forecast: "{{ todays_forecast[weather_entity_id].forecast[0] }}"
       temperature_unit: "{{ state_attr(weather_entity_id, 'temperature_unit') }}"
+      # Always from blueprint inputs
       pets: !input pets
-      input_image_dir: "{{ input_image_dir_input if input_image_dir_input != '' else none }}"
-      input_image_paths: !input input_image_paths
       art_styles: !input art_styles
-      image_gen_aspect_ratio: !input image_gen_aspect_ratio
-      image_gen_resolution: !input image_gen_resolution
-      final_image_size: !input final_image_size
-      display_profile: "{{ display_profile_input if display_profile_input != '' else none }}"
-      archive_dir: !input archive_dir
+      # Overrides — omitted (null) when blank so the service falls back to config entry values
+      gemini_api_key: "{{ override_gemini_api_key if override_gemini_api_key != '' else none }}"
+      location: "{{ override_location if override_location != '' else none }}"
+      input_image_dir: "{{ override_input_image_dir if override_input_image_dir != '' else none }}"
+      image_gen_aspect_ratio: "{{ override_image_gen_aspect_ratio if override_image_gen_aspect_ratio != '' else none }}"
+      image_gen_resolution: "{{ override_image_gen_resolution if override_image_gen_resolution != '' else none }}"
+      final_image_size: "{{ override_final_image_size if override_final_image_size != '' else none }}"
+      display_profile: "{{ none if override_display_profile == '' else (none if override_display_profile == 'none' else override_display_profile) }}"
 
 mode: single

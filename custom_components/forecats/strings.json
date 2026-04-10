@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Forecats Setup",
+        "data": {
+          "gemini_api_key": "Gemini API Key",
+          "location": "Location",
+          "input_image_dir": "Pet image directory (optional)"
+        },
+        "data_description": {
+          "gemini_api_key": "Your Google AI Studio API key.",
+          "location": "Your location for weather context (e.g. \"Toronto, Ontario, Canada\").",
+          "input_image_dir": "Path to a folder of pet reference images (e.g. /config/media/forecats). Leave blank to supply image paths per service call."
+        }
+      },
+      "display": {
+        "title": "Display Settings",
+        "data": {
+          "image_gen_aspect_ratio": "Image aspect ratio",
+          "image_gen_resolution": "Image resolution",
+          "final_image_size": "Final image size",
+          "display_profile": "Display profile"
+        },
+        "data_description": {
+          "image_gen_aspect_ratio": "Aspect ratio for the generated image.",
+          "image_gen_resolution": "Resolution of the generated image.",
+          "final_image_size": "Output dimensions after resizing, e.g. \"800x480\".",
+          "display_profile": "Color profile to optimize the image for your display. Leave blank for original colors."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Forecats Options",
+        "data": {
+          "gemini_api_key": "Gemini API Key",
+          "location": "Location",
+          "input_image_dir": "Pet image directory",
+          "image_gen_aspect_ratio": "Image aspect ratio",
+          "image_gen_resolution": "Image resolution",
+          "final_image_size": "Final image size",
+          "display_profile": "Display profile"
+        },
+        "data_description": {
+          "input_image_dir": "Leave blank to supply image paths per service call.",
+          "display_profile": "Leave blank for original colors."
+        }
+      }
+    }
+  }
+}

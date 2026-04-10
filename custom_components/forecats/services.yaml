@@ -1,80 +1,96 @@
 generate_pet_picture:
   name: Generate Pet Picture
-  description: Generate a weather-themed pet picture
+  description: >
+    Generate a weather-themed pet picture. Fields marked optional will fall
+    back to the values configured in the Forecats config entry if not supplied.
   fields:
+    gemini_api_key:
+      description: >
+        Google AI Studio API key. If omitted, the key from the config entry is used.
+      required: false
+      selector:
+        text:
+          type: password
     location:
-      description: Location for weather context
-      example: "Toronto, Ontario, Canada"
-      required: true
+      description: >
+        Location for weather context (e.g. "Toronto, Ontario, Canada"). If omitted,
+        the location from the config entry is used.
+      required: false
       selector:
         text:
     forecast:
-      description: Weather forecast data
+      description: Weather forecast data (from weather.get_forecasts).
       required: true
     temperature_unit:
-      description: Temperature unit (e.g., "C" or "F")
+      description: Temperature unit symbol, e.g. "C" or "F".
       required: true
     pets:
-      description: "list of your pets, each pet must have a name and description, and can have a type (default: cat)"
+      description: >
+        List of pets. Each pet must have a name and description, and optionally
+        a type (default: cat).
       required: true
       selector:
         object:
-          label_field: name
-          description_field: type
-          multiple: true
-          fields:
-            name:
-              label: Name
-              selector:
-                text:
-            type:
-              label: Type
-              selector:
-                text:
-            description:
-              label: Description
-              selector:
-                text:
     input_image_dir:
       description: >
-        Path to a directory of reference pet images. All image files (jpg, png, webp,
-        etc.) in the directory will be used. Upload via HA Media Browser to
-        /config/media/ and reference the folder here (e.g. /config/media/forecats).
+        Path to a directory of reference pet images. All image files in the
+        directory will be used. If omitted, the directory from the config entry
+        is used (if set).
       required: false
       selector:
         text:
     input_image_paths:
       description: >
-        Explicit list of paths to reference images. Use this or input_image_dir
-        (or both).
+        Explicit list of paths to reference images. Use this, input_image_dir,
+        or both.
       required: false
       selector:
         object:
     art_styles:
-      description: List of art styles to choose from
+      description: List of art styles to randomly choose from.
       required: true
       selector:
         object:
     image_gen_aspect_ratio:
-      description: Aspect ratio for generated image
-      default: "16:9"
+      description: >
+        Aspect ratio for the generated image. If omitted, the value from the
+        config entry is used.
+      required: false
       selector:
-        text:
+        select:
+          options:
+            - "1:1"
+            - "3:4"
+            - "4:3"
+            - "9:16"
+            - "16:9"
     image_gen_resolution:
-      description: Resolution for generated image
-      default: "1K"
+      description: >
+        Resolution of the generated image. If omitted, the value from the
+        config entry is used.
+      required: false
       selector:
-        text:
+        select:
+          options:
+            - "1K"
+            - "2K"
+            - "4K"
     final_image_size:
-      description: Final output image size
-      default: "1K"
-      example: "800x480"
+      description: >
+        Output dimensions after resizing (e.g. "800x480"). If omitted, the
+        value from the config entry is used.
+      required: false
       selector:
         text:
     display_profile:
-      description: Display profile (null or "spectra6")
-      required: true
-      default: null
-      example: "spectra6"
+      description: >
+        Color profile to optimize the image for your display. If omitted, the
+        value from the config entry is used.
+      required: false
       selector:
-        text:
+        select:
+          options:
+            - label: "None (original colors)"
+              value: ""
+            - label: "Spectra 6 (e-ink)"
+              value: "spectra6"

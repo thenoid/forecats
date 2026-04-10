@@ -3,7 +3,7 @@ from pydantic import BaseModel, model_validator
 
 class Pet(BaseModel):
     name: str
-    type: str
+    type: str = "cat"
     description: str
 
 
@@ -20,11 +20,12 @@ class GenerateRequest(BaseModel):
     input_image_dir: str | None = None
     art_styles: list[str]
 
+    # These can be supplied via config entry defaults
     image_gen_aspect_ratio: str
     image_gen_resolution: str
     final_image_size: str
 
-    display_profile: str | None
+    display_profile: str | None = None
     archive_dir: str = "/media/forecats"
 
     @model_validator(mode="after")
