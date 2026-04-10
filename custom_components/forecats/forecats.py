@@ -6,8 +6,6 @@ import random
 import textwrap
 from pathlib import Path
 
-from google import genai
-from google.genai import types
 from PIL import Image
 
 try:
@@ -31,6 +29,8 @@ def generate_pet_pic(data: GenerateRequest, config_dir: str) -> tuple[str, str]:
         tuple[str, str]: Filenames of the saved PNG images of the generated pet pictures (original and recolored).
 
     """
+    from google import genai  # noqa: PLC0415
+
     # Setup paths relative to HA config directory
     config_path = Path(config_dir)
     data_dir = config_path / "forecats_data"
@@ -128,7 +128,7 @@ def load_images_from_dir(dir_path: str, max_size: int = 1024) -> dict[str, Image
 
 
 def generate_activity(
-    client: genai.Client,
+    client,
     data: GenerateRequest,
     prompt_history: list[str],
 ) -> str:
@@ -192,13 +192,14 @@ def generate_activity(
 
 
 def generate_image(
-    client: genai.Client,
+    client,
     data: GenerateRequest,
     activity: str,
     input_images: dict[str, Image.Image],
     art_style: str,
 ) -> Image.Image:
     """Generate a cartoon image of pets based on the weather forecast and activity using gemini."""
+    from google.genai import types  # noqa: PLC0415
     pets_information = "\n".join(
         f"- {pet.name}, {pet.type}, {pet.description}" for pet in data.pets
     )
