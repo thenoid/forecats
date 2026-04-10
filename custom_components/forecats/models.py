@@ -25,6 +25,7 @@ class GenerateRequest(BaseModel):
     final_image_size: str
 
     display_profile: str | None
+    archive_dir: str = "/media/forecats"
 
     @model_validator(mode="after")
     def check_images_provided(self):

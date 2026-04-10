@@ -81,9 +81,9 @@ def generate_pet_pic(data: GenerateRequest, config_dir: str) -> tuple[str, str]:
     image.save(original_filepath)
     optimized_image.save(optimized_filepath)
 
-    # Archive dated copies to /media
+    # Archive dated copies
     date_str = datetime.now().strftime("%Y-%m-%d")
-    archive_dir = config_path / "media" / "forecats_archive"
+    archive_dir = Path(data.archive_dir) / "forecats_archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(original_filepath, archive_dir / f"forecats_original_{date_str}.png")
     shutil.copy2(optimized_filepath, archive_dir / f"forecats_optimized_{date_str}.png")

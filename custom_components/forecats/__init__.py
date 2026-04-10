@@ -32,6 +32,7 @@ SERVICE_SCHEMA = vol.Schema(
         vol.Required("image_gen_resolution"): cv.string,
         vol.Required("final_image_size"): cv.string,
         vol.Optional("display_profile"): vol.Any(None, cv.string),
+        vol.Optional("archive_dir", default="/media/forecats"): cv.string,
     },
 )
 

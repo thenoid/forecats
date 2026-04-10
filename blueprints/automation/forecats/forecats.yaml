@@ -124,6 +124,14 @@ blueprint:
       selector:
         text: {}
 
+    archive_dir:
+      name: Archive directory
+      description: >
+        Directory to save dated image archives. Defaults to /media/forecats.
+      default: "/media/forecats"
+      selector:
+        text: {}
+
     display_profile:
       name: Display profile
       description: >
@@ -168,5 +176,6 @@ action:
       image_gen_resolution: !input image_gen_resolution
       final_image_size: !input final_image_size
       display_profile: "{{ display_profile_input if display_profile_input != '' else none }}"
+      archive_dir: !input archive_dir
 
 mode: single
