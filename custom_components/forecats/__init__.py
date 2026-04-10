@@ -26,12 +26,12 @@ SERVICE_SCHEMA = vol.Schema(
         vol.Required("temperature_unit"): cv.string,  
         vol.Required("pets"): list[PET_SCHEMA],
         vol.Optional("input_image_paths", default=[]): [cv.string],
-        vol.Optional("input_image_dir"): cv.string,
+        vol.Optional("input_image_dir"): vol.Any(None, cv.string),
         vol.Required("art_styles"): [cv.string],
         vol.Required("image_gen_aspect_ratio"): cv.string,
         vol.Required("image_gen_resolution"): cv.string,
         vol.Required("final_image_size"): cv.string,
-        vol.Optional("display_profile"): cv.string,
+        vol.Optional("display_profile"): vol.Any(None, cv.string),
     },
 )
 
