@@ -19,6 +19,9 @@ wheels/
 # environment vars
 .env
 
+# Personal ESPHome configs
+config_examples/*_rocky.yaml
+
 # Virtual environments
 .venv
 

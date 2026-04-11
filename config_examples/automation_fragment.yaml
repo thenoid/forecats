@@ -1,10 +1,22 @@
 - id: "<YOUR AUTOMATION ID>"
   alias: generate forecats
   description: ''
+  # Fires at the top of every hour; the condition below gates it to scheduled slots.
+  # Set check_interval_hours to match your ESPHome device's check_interval_hours substitution.
   triggers:
-    - trigger: time
-      at: "05:00:00"
-  conditions: []
+    - trigger: time_pattern
+      minutes: "0"
+  variables:
+    trigger_time_str: "05:00:00"   # Change to your desired start time (hour is used)
+    check_interval_hours: 24       # Match to ESPHome check_interval_hours (1-24)
+  conditions:
+    - condition: template
+      value_template: >
+        {% set start_hour = trigger_time_str.split(':')[0] | int %}
+        {% set interval = check_interval_hours | int %}
+        {% set current_hour = now().hour %}
+        {% set hours_since_start = ((current_hour - start_hour) % 24 + 24) % 24 %}
+        {{ hours_since_start % interval == 0 }}
   actions:
     - action: weather.get_forecasts
       metadata: {}
@@ -29,12 +41,12 @@
             description: >
               <PET 2 DESCRIPTION>
           - "<...>"
-        input_image_paths: 
+        input_image_paths:
           - "/config/forecats_data/input_images/<PET1>.jpg"
           - "/config/forecats_data/input_images/<PET1 and <PET2>.jpg"
           - "/config/forecats_data/input_images/<PET2>.jpg"
           - "<...>" # Up to 14 images total
-        art_styles: 
+        art_styles:
           - "comic book"
           - "anime"
           - "pixar"

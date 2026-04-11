@@ -3,16 +3,34 @@ blueprint:
   description: >
     Generate a daily AI weather-themed illustration of your pets using the
     Forecats integration. Fetches today's forecast from a weather entity and
-    calls the `forecats.generate_pet_picture` service at a scheduled time.
+    calls the `forecats.generate_pet_picture` service on a configurable schedule.
   domain: automation
   source_url: https://github.com/jwardbond/forecats/blob/master/blueprints/automation/forecats/forecats.yaml
   input:
     trigger_time:
       name: Generation time
-      description: Time of day to generate the daily image.
+      description: >
+        Time of day to generate the first image each day. The hour portion is
+        used as the anchor for repeat intervals — e.g. if set to 05:00 with a
+        6-hour interval, images are generated at 05:00, 11:00, 17:00, 23:00.
       default: "05:00:00"
       selector:
         time: {}
+
+    check_interval_hours:
+      name: Check interval
+      description: >
+        How many hours between image regenerations. Set to 24 for once daily.
+        Match this to the check_interval_hours substitution in your ESPHome
+        device config so the device and automation stay in sync.
+      default: 24
+      selector:
+        number:
+          min: 1
+          max: 24
+          step: 1
+          unit_of_measurement: hours
+          mode: box
 
     weather_entity:
       name: Weather entity
@@ -146,14 +164,28 @@ blueprint:
             - label: "Spectra 6 (e-ink)"
               value: "spectra6"
 
+# Fires at the top of every hour; the condition below gates it to scheduled slots.
 trigger:
-  - trigger: time
-    at: !input trigger_time
+  - trigger: time_pattern
+    minutes: "0"
 
 variables:
   weather_entity_id: !input weather_entity
   display_profile_input: !input display_profile
   input_image_dir_input: !input input_image_dir
+  trigger_time_str: !input trigger_time
+  check_interval_hours_var: !input check_interval_hours
+
+# Only proceed when the current hour is a scheduled generation slot.
+# Uses the same modulo logic as the ESPHome device so they stay in sync.
+condition:
+  - condition: template
+    value_template: >
+      {% set start_hour = trigger_time_str.split(':')[0] | int %}
+      {% set interval = check_interval_hours_var | int %}
+      {% set current_hour = now().hour %}
+      {% set hours_since_start = ((current_hour - start_hour) % 24 + 24) % 24 %}
+      {{ hours_since_start % interval == 0 }}
 
 action:
   - action: weather.get_forecasts

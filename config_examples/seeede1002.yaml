@@ -1,3 +1,10 @@
+substitutions:
+  wake_hour: "5"             # Hour to start daily check (0-23, local time)
+  wake_minute: "15"          # Minutes past the hour to check — keep at 15 to ensure
+                             # the HA automation (which runs at :00) has time to finish
+  check_interval_hours: "24" # How often to check in hours (1-24)
+
+
 esphome:
   name: e-ink-frame
   friendly_name: e-ink frame
@@ -11,7 +18,35 @@ esphome:
           condition:
             wifi.connected:
           timeout: 30s
-      - component.update: forecats_image
+      - wait_until:
+          condition:
+            lambda: 'return id(ha_time).now().is_valid();'
+          timeout: 30s
+      - script.execute: check_and_update_image
+      - script.wait: check_and_update_image
+      - wait_until:
+          condition:
+            lambda: 'return id(download_complete);'
+          timeout: 60s
+      - logger.log: "Entering deep sleep until next scheduled check"
+      - light.turn_off: onboard_led
+      - deep_sleep.enter:
+          id: deep_sleep_ctrl
+          sleep_duration: !lambda |-
+            if (!id(ha_time).now().is_valid()) {
+              ESP_LOGW("forecats", "Time not valid, sleeping for full interval");
+              return (uint32_t)(${check_interval_hours} * 3600000UL);
+            }
+            auto now = id(ha_time).now();
+            int current_minutes = now.hour * 60 + now.minute;
+            int start_minutes = ${wake_hour} * 60 + ${wake_minute};
+            int interval_minutes = ${check_interval_hours} * 60;
+            int diff = current_minutes - start_minutes;
+            int minutes_past = ((diff % interval_minutes) + interval_minutes) % interval_minutes;
+            int sleep_minutes = interval_minutes - minutes_past;
+            if (sleep_minutes < 1) sleep_minutes = interval_minutes;
+            ESP_LOGI("forecats", "Sleeping for %d minutes until next check", sleep_minutes);
+            return (uint32_t)(sleep_minutes * 60000UL);
 
 
 esp32:
@@ -83,6 +118,17 @@ output:
     id: bsp_battery_enable
 
 
+globals:
+  - id: last_known_version
+    type: std::string
+    restore_value: true
+    initial_value: '""'
+  - id: download_complete
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+
+
 # IMAGE DOWNLOAD LOGIC
 http_request:
   verify_ssl: false
@@ -97,6 +143,9 @@ online_image:
     url: http://homeassistant:8123/local/daily_forecats/forecats_optimized.png
     on_download_finished:
       - component.update: epaper_display
+      - globals.set:
+          id: download_complete
+          value: 'true'
 
 
 # BUTTON LOGIC
@@ -119,19 +168,30 @@ binary_sensor:
     pin:
       number: GPIO5 # Left white button
       mode: INPUT_PULLUP
-    name: "Sleep Until 5:00am Button"
+    name: "Sleep Until Next Check Button"
     internal: true
     filters:
       - delayed_on: 50ms
     on_press:
       then:
-        - logger.log: "Sleep Until 5:00am Button Pressed"
+        - logger.log: "Sleep Until Next Check Button Pressed"
         - delay: 10s
         - light.turn_off: onboard_led
         - deep_sleep.enter:
             id: deep_sleep_ctrl
-            time_id: ha_time
-            until: "05:00:00"
+            sleep_duration: !lambda |-
+              if (!id(ha_time).now().is_valid()) {
+                return (uint32_t)(${check_interval_hours} * 3600000UL);
+              }
+              auto now = id(ha_time).now();
+              int current_minutes = now.hour * 60 + now.minute;
+              int start_minutes = ${wake_hour} * 60 + ${wake_minute};
+              int interval_minutes = ${check_interval_hours} * 60;
+              int diff = current_minutes - start_minutes;
+              int minutes_past = ((diff % interval_minutes) + interval_minutes) % interval_minutes;
+              int sleep_minutes = interval_minutes - minutes_past;
+              if (sleep_minutes < 1) sleep_minutes = interval_minutes;
+              return (uint32_t)(sleep_minutes * 60000UL);
 
 
 # DEEP SLEEP LOGIC
@@ -144,24 +204,6 @@ time:
   - platform: homeassistant
     id: ha_time
     timezone: "America/Toronto"
-    on_time:
-      # Download image every day at 5:10 AM
-      - seconds: 0
-        minutes: 10
-        hours: 5
-        then:
-          - component.update: forecats_image
-      # Sleep every day at 5:12 AM until 5:00 AM
-      - seconds: 0
-        minutes: 12
-        hours: 5
-        then:
-          - logger.log: "Entering deep sleep until 5:00 AM"
-          - light.turn_off: onboard_led
-          - deep_sleep.enter:
-              id: deep_sleep_ctrl
-              time_id: ha_time
-              until: "05:00:00"
 
 
 # LED LOGIC
@@ -222,3 +264,29 @@ script:
       - component.update: battery_level
       - output.turn_off: bsp_battery_enable
       - logger.log: "Battery status measured and circuit disabled."
+
+  - id: check_and_update_image
+    mode: single
+    then:
+      - logger.log: "Checking for image update via HEAD request..."
+      - http_request.send:
+          method: HEAD
+          url: http://homeassistant:8123/local/daily_forecats/forecats_optimized.png
+          on_response:
+            then:
+              - lambda: |-
+                  for (const auto& header : response->headers) {
+                    if (header.name == "Last-Modified") {
+                      std::string last_mod = header.value;
+                      if (last_mod != id(last_known_version)) {
+                        ESP_LOGI("forecats", "Image changed: %s", last_mod.c_str());
+                        id(last_known_version) = last_mod;
+                        id(download_complete) = false;
+                        id(forecats_image).update();
+                      } else {
+                        ESP_LOGI("forecats", "No change detected, skipping update.");
+                      }
+                      return;
+                    }
+                  }
+                  ESP_LOGW("forecats", "Last-Modified header not found in response.");
