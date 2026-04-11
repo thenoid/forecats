@@ -1,13 +1,25 @@
 substitutions:
+  # Device identity — override in your personal config
+  device_name: e-ink-frame
+  device_friendly_name: e-ink frame
+  wifi_ap_ssid: "E-Ink-Frame Fallback Hotspot"
+
+  # Image URL — set to your HA local or Nabu Casa URL
+  image_url: http://homeassistant:8123/local/daily_forecats/forecats_optimized.png
+
+  # Timezone — set to your local timezone
+  timezone: "America/Toronto"
+
+  # Schedule — match check_interval_hours to the blueprint setting
   wake_hour: "5"             # Hour to start daily check (0-23, local time)
-  wake_minute: "15"          # Minutes past the hour to check — keep at 15 to ensure
-                             # the HA automation (which runs at :00) has time to finish
+  wake_minute: "15"          # Minutes past the hour — keep at 15 so the HA automation
+                             # (which runs at :00) has time to finish generating
   check_interval_hours: "24" # How often to check in hours (1-24)
 
 
 esphome:
-  name: e-ink-frame
-  friendly_name: e-ink frame
+  name: ${device_name}
+  friendly_name: ${device_friendly_name}
   on_boot:
     priority: -100
     then:
@@ -77,7 +89,7 @@ wifi:
     then:
       - logger.log: "WiFi connected successfully"
   ap:
-    ssid: "E-Ink-Frame Fallback Hotspot"
+    ssid: ${wifi_ap_ssid}
     password: ""
 
 captive_portal:
@@ -140,7 +152,7 @@ online_image:
     format: PNG
     type: RGB
     buffer_size: 65536
-    url: http://homeassistant:8123/local/daily_forecats/forecats_optimized.png
+    url: ${image_url}
     on_download_finished:
       - component.update: epaper_display
       - globals.set:
@@ -203,7 +215,7 @@ deep_sleep:
 time:
   - platform: homeassistant
     id: ha_time
-    timezone: "America/Toronto"
+    timezone: ${timezone}
 
 
 # LED LOGIC
@@ -271,7 +283,7 @@ script:
       - logger.log: "Checking for image update via HEAD request..."
       - http_request.send:
           method: HEAD
-          url: http://homeassistant:8123/local/daily_forecats/forecats_optimized.png
+          url: ${image_url}
           on_response:
             then:
               - lambda: |-
