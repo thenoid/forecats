@@ -24,6 +24,12 @@ class GenerateRequest(BaseModel):
     image_gen_resolution: str
     final_image_size: str
 
+    activity_model: str = "gemini-2.5-flash-lite"
+    image_model: str = "gemini-3-pro-image-preview"
+    max_image_retries: int = 4
+    initial_backoff_seconds: float = 2.0
+    max_backoff_seconds: float = 30.0
+
     display_profile: str | None
     archive_dir: str = "/media/forecats"
 

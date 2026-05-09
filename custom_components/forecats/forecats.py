@@ -5,6 +5,7 @@ import logging
 import random
 import shutil
 import textwrap
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -18,6 +19,7 @@ except ImportError:  # For local testing
     from models import GenerateRequest
 
 _LOGGER = logging.getLogger(__name__)
+
 
 
 def generate_pet_pic(data: GenerateRequest, config_dir: str) -> tuple[str, str]:
@@ -189,7 +191,7 @@ def generate_activity(
     )
 
     activity_response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model=data.activity_model,
         contents=activity_prompt,
     )
 
@@ -257,8 +259,12 @@ def generate_image(
         """,
     )
 
-    response = client.models.generate_content(
-        model="gemini-3-pro-image-preview",
+    response = _generate_image_with_retries(
+        client,
+        model=data.image_model,
+        max_retries=data.max_image_retries,
+        initial_backoff_seconds=data.initial_backoff_seconds,
+        max_backoff_seconds=data.max_backoff_seconds,
         contents=[image_generation_prompt, *input_images.values()],
         config=types.GenerateContentConfig(
             response_modalities=["IMAGE"],
@@ -281,3 +287,43 @@ def generate_image(
 
     msg = "No image part in response."
     raise RuntimeError(msg)
+
+
+def _generate_image_with_retries(
+    client,
+    model: str,
+    max_retries: int,
+    initial_backoff_seconds: float,
+    max_backoff_seconds: float,
+    contents,
+    config,
+):
+    """Generate an image response with exponential backoff on transient API errors."""
+    from google.genai import errors  # noqa: PLC0415
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            return client.models.generate_content(
+                model=model,
+                contents=contents,
+                config=config,
+            )
+        except errors.ServerError as err:
+            if attempt == max_retries:
+                raise
+
+            backoff_seconds = min(
+                initial_backoff_seconds * (2 ** (attempt - 1)),
+                max_backoff_seconds,
+            )
+            jitter_seconds = random.uniform(0, 1)
+            sleep_seconds = backoff_seconds + jitter_seconds
+            _LOGGER.warning(
+                "Image generation failed with server error (%s). Retrying in %.2fs "
+                "(attempt %s/%s).",
+                err,
+                sleep_seconds,
+                attempt,
+                max_retries,
+            )
+            time.sleep(sleep_seconds)
