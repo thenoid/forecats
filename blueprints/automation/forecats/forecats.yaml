@@ -142,6 +142,54 @@ blueprint:
       selector:
         text: {}
 
+
+    activity_model:
+      name: Activity model
+      description: Gemini model used to generate the activity text prompt.
+      default: "gemini-2.5-flash-lite"
+      selector:
+        text: {}
+
+    image_model:
+      name: Image model
+      description: Gemini image model used to generate the final illustration.
+      default: "gemini-3-pro-image-preview"
+      selector:
+        text: {}
+
+    max_image_retries:
+      name: Max image retries
+      description: Number of retry attempts for transient image generation failures.
+      default: 4
+      selector:
+        number:
+          min: 1
+          max: 10
+          step: 1
+          mode: box
+
+    initial_backoff_seconds:
+      name: Initial backoff (seconds)
+      description: Initial wait before retrying image generation after a transient failure.
+      default: 2
+      selector:
+        number:
+          min: 0.1
+          max: 120
+          step: 0.1
+          mode: box
+
+    max_backoff_seconds:
+      name: Max backoff (seconds)
+      description: Upper limit for exponential backoff between image-generation retries.
+      default: 30
+      selector:
+        number:
+          min: 0.1
+          max: 300
+          step: 0.1
+          mode: box
+
     archive_dir:
       name: Archive directory
       description: >
@@ -207,6 +255,11 @@ action:
       image_gen_aspect_ratio: !input image_gen_aspect_ratio
       image_gen_resolution: !input image_gen_resolution
       final_image_size: !input final_image_size
+      activity_model: !input activity_model
+      image_model: !input image_model
+      max_image_retries: !input max_image_retries
+      initial_backoff_seconds: !input initial_backoff_seconds
+      max_backoff_seconds: !input max_backoff_seconds
       display_profile: "{{ display_profile_input if display_profile_input != '' else none }}"
       archive_dir: !input archive_dir
 

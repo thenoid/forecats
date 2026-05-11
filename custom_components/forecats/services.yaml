@@ -71,6 +71,43 @@ generate_pet_picture:
       example: "800x480"
       selector:
         text:
+    activity_model:
+      description: Gemini model used to generate activity text
+      default: "gemini-2.5-flash-lite"
+      selector:
+        text:
+    image_model:
+      description: Gemini model used to generate the final image
+      default: "gemini-3-pro-image-preview"
+      selector:
+        text:
+    max_image_retries:
+      description: Maximum retry attempts for transient image-generation failures
+      default: 4
+      selector:
+        number:
+          min: 1
+          max: 10
+          step: 1
+          mode: box
+    initial_backoff_seconds:
+      description: Initial backoff delay before image retry
+      default: 2.0
+      selector:
+        number:
+          min: 0.1
+          max: 120
+          step: 0.1
+          mode: box
+    max_backoff_seconds:
+      description: Max backoff delay between image retries
+      default: 30.0
+      selector:
+        number:
+          min: 0.1
+          max: 300
+          step: 0.1
+          mode: box
     display_profile:
       description: Display profile (null or "spectra6")
       required: true
